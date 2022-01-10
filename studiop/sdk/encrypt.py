@@ -30,7 +30,6 @@ class TinkEncryptor(Encryptor):
         primitive=streaming_aead.StreamingAead,
     ) -> None:
         super().__init__()
-        self._key = getpass.getpass(f"Enter decryption key for {keyfile}:")
         self._logger = logging.getLogger(self.__class__.__name__)
         self.chunk_size = chunk_size
 
@@ -42,7 +41,9 @@ class TinkEncryptor(Encryptor):
 
         with pathlib.Path(keyfile).open(READ_B) as fp:
             try:
-                f = fernet.Fernet(self._key)
+                f = fernet.Fernet(
+                    getpass.getpass(f"Enter decryption key for {keyfile}:")
+                )
                 keyset_reader = tink.BinaryKeysetReader(f.decrypt(fp.read()))
                 keyset_handle = cleartext_keyset_handle.read(keyset_reader)
             except TinkError as err:
