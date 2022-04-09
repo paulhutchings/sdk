@@ -1,9 +1,10 @@
 import argparse
 import json
 import pathlib
+from typing import Dict, List
 
-from studiop.constants import GZIP, READ, UTF_8
-from studiop.sdk import archive, encrypt, tasks, upload
+from studiop.constants import READ, UTF_8
+from studiop.sdk import archive, backend, encrypt, tasks
 
 
 def setup() -> argparse.Namespace:
@@ -24,18 +25,36 @@ def setup() -> argparse.Namespace:
     return args
 
 
+def create_tasks(config: Dict) -> List[tasks.Task]:
+    kwargs = {
+        "backend": backend.S3Backend(**config["backend"]),
+        "archiver": archive.TarArchiver(**config["archiver"]),
+        "encryptor": encrypt.TinkCryptor(**config.get("encryptor", None)),
+    }
+    # tasklist = []
+    # for entry in config["tasks"]:
+    # if entry["recursive"]:
+    #     entry.pop("recursive")
+    #     source = pathlib.Path(entry["source"])
+    #     for item in source.iterdir():
+    #         if item not in entry["exclude"] and item.is_dir():
+    #             tasklist.append(
+    #                 tasks.ArchiveTask(
+    #                     item, f"{entry['dest']}/{source.name}", **kwargs
+    #                 )
+    #             )
+    # else:
+    #     tasklist.append(tasks.ArchiveTask(**entry, **kwargs))
+    tasklist = [tasks.ArchiveTask(**entry, **kwargs) for entry in config["tasks"]]
+    return tasklist
+
+
 def main():
     args = setup()
     with args.config_file.open(READ, encoding=UTF_8) as config_file:
         config = json.load(config_file)
 
-    uploader = upload.S3Uploader(**config["uploader"])
-    archiver = archive.TarArchiver(**config["archiver"])
-    encryptor = encrypt.TinkEncryptor(**config["encryptor"])
-    for entry in config["tasks"]:
-        task = tasks.ArchiveTask(
-            uploader=uploader, archiver=archiver, encryptor=encryptor, **entry
-        )
+    for task in create_tasks(config):
         task.run()
 
 
