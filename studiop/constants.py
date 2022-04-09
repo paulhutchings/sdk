@@ -5,4 +5,4 @@ MEGABYTE = KILOBYTE * KILOBYTE
 READ_B = "rb"
 GZIP = "gz"
 READ = "r"
-BYTE = "b"
+BYTE = "B"
